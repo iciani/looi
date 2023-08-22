@@ -15,7 +15,7 @@
 This is the LOOI TECH CHALLENGE.
 
 As an Entity, we have added a "ToDo" model.
-These are only some of the files used. This will create the DB schema, and seed some dummy info into tables, for a better understeanding. 
+These are only some of the files used. This will create the DB schema, and seed some dummy info into tables, for a better understanding. 
 
 BE AWARE: A MySql server must be installed and running in order to test this challenge.
 
