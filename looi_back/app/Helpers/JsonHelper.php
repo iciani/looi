@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use Exception;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
@@ -36,7 +37,7 @@ final class JsonHelper
         if ($e instanceof RequestException) {
             $response = $e->response->json();
             $message = $response['title'] ?? json_encode($response);
-        }
+        }   
 
         $status = self::getStatus($e, $status);
 
@@ -72,6 +73,9 @@ final class JsonHelper
         if (! is_null($status)) {
             return $status;
         }
+        if ($e instanceof AuthenticationException) {
+            return Response::HTTP_UNAUTHORIZED;
+        }        
         if ($e instanceof ValidationException) {
             return Response::HTTP_UNPROCESSABLE_ENTITY;
         }
