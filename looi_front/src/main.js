@@ -15,8 +15,6 @@ import { aliases, mdi } from 'vuetify/iconsets/mdi'
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 import '@mdi/font/css/materialdesignicons.css'
-import VueSweetalert2 from 'vue-sweetalert2'
-import 'sweetalert2/dist/sweetalert2.min.css'
 
 const looi = {
 	dark: false,
@@ -61,5 +59,4 @@ app.provide('globals', DefinesGLOBAL)
 
 app.use(createPinia())
 app.use(router)
-app.use(vuetify)
-app.use(VueSweetalert2).mount('#app')
+app.use(vuetify).mount('#app')

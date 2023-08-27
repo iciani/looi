@@ -156,7 +156,7 @@
 				<v-card-actions>
 					<v-btn
 						type="submit"
-						v-if="pOperator != 'Show'"
+						v-if="pOperator != globals.SHOW"
 						:disabled="onSave"
 						color="primaryBtn"
 						variant="outlined"
@@ -184,10 +184,12 @@
 <script setup>
 import { ref, onMounted, nextTick, inject, computed } from 'vue'
 import todoApi from '@/api/todoApi'
-import Swal from 'sweetalert2'
+import { useNotify } from '@/composables/useNotify'
 
+const { successNotify, errorNotify } = useNotify()
 const globals = inject('globals')
 const axios = inject('axios')
+
 //We import an API file per Entity with its related endpoints.
 const todo = todoApi(axios)
 
@@ -214,32 +216,29 @@ const props = defineProps({
 
 //EVENTS
 onMounted(() => {
-	if (props.pOperator != 'Add') {
+	if (props.pOperator != globals.ADD) {
 		activeRow.value = Object.assign({}, props.pActiveRow)
 	}
 	state.value = activeRow.value.state
 	priority.value = activeRow.value.priority
 })
 
+//Computed
 const disabled = computed(() => {
-	return props.pOperator === 'Show' || props.pOperator === 'Delete' ? true : false
+	return props.pOperator === globals.SHOW || props.pOperator === globals.DELETE
+		? true
+		: false
 })
 
 const saveButtonText = computed(() => {
-	return props.pOperator === 'Add' || props.pOperator === 'Edit' ? 'SAVE' : 'DELETE'
+	return props.pOperator === globals.ADD || props.pOperator === globals.EDIT
+		? 'SAVE'
+		: 'DELETE'
 })
 
-//Form Validations Required
-const required = function (value) {
-	if (value) {
-		return true
-	} else {
-		return 'Required Field.'
-	}
-}
-
-//Form Validations URL format.
-const url = function (value) {
+//Form Validations (url, required)
+const required = value => (value ? true : 'Required Field.')
+const url = value => {
 	let url
 	try {
 		url = value !== '' && value !== null ? new URL(value) : true
@@ -250,21 +249,21 @@ const url = function (value) {
 	return url
 }
 
-//FUNCTIONS
-function close() {
+//FUNCTIONS (logics)
+const close = () => {
 	emit('closeComponent')
 }
 
-function onStateChange(state) {
+const onStateChange = state => {
 	activeRow.value.state = state
 }
 
-function onPriorityChange(priority) {
+const onPriorityChange = priority => {
 	activeRow.value.priority = priority
 }
 
 const saveData = async () => {
-	if (isFormValid.value && props.pOperator != 'Show') {
+	if (isFormValid.value && props.pOperator != globals.SHOW) {
 		nextTick(() => {
 			onSave.value = true
 		})
@@ -272,7 +271,7 @@ const saveData = async () => {
 	}
 }
 
-function Save(data, operator) {
+const Save = (data, operator) => {
 	const params = {
 		id: data.id,
 		title: data.title,
@@ -285,13 +284,13 @@ function Save(data, operator) {
 
 	let pSave
 	switch (operator) {
-		case 'Add':
+		case globals.ADD:
 			pSave = todo.Add(params)
 			break
-		case 'Edit':
+		case globals.EDIT:
 			pSave = todo.Change(params)
 			break
-		case 'Delete':
+		case globals.DELETE:
 			pSave = todo.Delete(params)
 			break
 		default:
@@ -301,25 +300,11 @@ function Save(data, operator) {
 	pSave
 		.then(() => {
 			emit('onSave')
-			Swal.fire({
-				position: 'top-end',
-				icon: 'success',
-				title: 'Your work has been saved',
-				showConfirmButton: false,
-				timer: 3500,
-			})
+			successNotify()
 			onSave.value = false
 		})
 		.catch(error => {
-			let msg = error.response.data.message
-			let mySubString = msg.substring(msg.indexOf('{'), msg.lastIndexOf('}') + 1)
-			Swal.fire({
-				position: 'top-end',
-				icon: 'error',
-				title: error.response.data.message.replace(mySubString, ''),
-				showConfirmButton: false,
-				timer: 3500,
-			})
+			errorNotify(error)
 			onSave.value = false
 		})
 	return 0

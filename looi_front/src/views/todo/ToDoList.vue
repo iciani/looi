@@ -28,7 +28,7 @@
 			<template v-slot:[`item.state`]="{ item }">
 				<p>
 					<v-chip
-						:color="item.raw.state === 'Completed' ? 'success' : 'gray'"
+						:color="item.raw.state === globals.STATS.Completed ? 'success' : 'gray'"
 						class="align-center my-auto">
 						{{ item.raw.state }}
 					</v-chip>
@@ -89,13 +89,13 @@
 </template>
 
 <script setup>
+import { ref, onMounted, nextTick, inject } from 'vue'
+import { useDisplay } from 'vuetify'
+import { VDataTable } from 'vuetify/labs/VDataTable'
 import ToDoForm from './ToDoForm.vue'
 import todoApi from '@/api/todoApi'
-import { inject } from 'vue'
-import { ref, onMounted, nextTick } from 'vue'
-import { VDataTable } from 'vuetify/labs/VDataTable'
-import { useDisplay } from 'vuetify'
 const axios = inject('axios')
+const globals = inject('globals')
 
 //We import an API file per Entity with its related endpoints.
 const todo = todoApi(axios)
@@ -156,14 +156,14 @@ onMounted(() => {
 })
 
 //Functions
-async function forceRerender() {
+const forceRerender = async () => {
 	componentKey.value += 1
 	showDialog.value = false
 	await nextTick()
 	showDialog.value = true
 }
 
-async function getListData() {
+const getListData = async () => {
 	try {
 		loading.value = true
 		const response = await todo.List()
@@ -176,34 +176,38 @@ async function getListData() {
 	}
 }
 
-function addItem() {
+//ADD ITEM
+const addItem = () => {
 	operator.value = 'Add'
 	showDialog.value = true
 	forceRerender()
 }
 
-function editItem(data) {
+//EDIT ITEM
+const editItem = data => {
 	forceRerender()
-	operator.value = 'Edit'
+	operator.value = globals.EDIT
 	showDialog.value = true
 	activeRow.value = data
 }
 
-function showItem(data) {
+//SHOW ITEM
+const showItem = data => {
 	forceRerender()
-	operator.value = 'Show'
+	operator.value = globals.SHOW
 	showDialog.value = true
 	activeRow.value = data
 }
 
-function deleteItem(data) {
+//DELETE ITEM
+const deleteItem = data => {
 	forceRerender()
-	operator.value = 'Delete'
+	operator.value = globals.DELETE
 	showDialog.value = true
 	activeRow.value = data
 }
 
-function SaveData() {
+const SaveData = () => {
 	showDialog.value = false
 	getListData()
 }
