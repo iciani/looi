@@ -2,30 +2,28 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\ToDoPriorities;
-use App\Enums\ToDoStates;
 use App\Helpers\JsonHelper;
+use App\Http\Requests\ToDo\ToDoIndexRequest;
+use App\Http\Requests\ToDo\ToDoStoreRequest;
+use App\Http\Requests\ToDo\ToDoUpdateRequest;
 use App\Http\Resources\ToDoResource;
 use App\Models\ToDo;
+use App\Services\ToDoService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
-use Illuminate\Validation\Rule;
 
 class ToDoController extends Controller
 {
+    public function __construct(public readonly ToDoService $toDoService)
+    {
+    }
+
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request): AnonymousResourceCollection | JsonResponse
+    public function index(ToDoIndexRequest $request): AnonymousResourceCollection | JsonResponse
     {
-        $request->validate([
-            'per_page' => 'sometimes|nullable|integer|min:1',
-            'state' => ['sometimes','nullable','string',Rule::in(ToDoStates::states())],
-            'airing_date' => 'sometimes|nullable|date',
-            'sort' => 'sometimes|nullable|string',
-        ]);
         $paginatedData = ToDo::filter($request)->paginate($request->per_page ?? 10);
         return ToDoResource::collection($paginatedData);
     }
@@ -33,18 +31,12 @@ class ToDoController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(ToDoStoreRequest $request): JsonResponse
     {
-        $request->validate([
-            'title' => 'required|string|max:100',
-            'description' => 'sometimes|nullable|string',
-            'state' => ['required','string',Rule::in(ToDoStates::states())],
-            'thumbnail' => 'sometimes|nullable|url',
-            'committed_due_date' => 'sometimes|nullable|date',
-            'priority' => ['required','string',Rule::in(ToDoPriorities::priorities())],
-        ]);
-        $toDo = ToDo::create($request->all());
-        return JsonHelper::success(['data' => new ToDoResource($toDo)], Response::HTTP_OK);
+        $toDo = $this->toDoService->create($request->validated());
+        return JsonHelper::success([
+            'data' => new ToDoResource($toDo)
+        ], Response::HTTP_OK);
     }
 
     /**
@@ -60,17 +52,9 @@ class ToDoController extends Controller
     /**
      * Update a resource in storage.
      */
-    public function update(Request $request, ToDo $todo): JsonResponse
+    public function update(ToDoUpdateRequest $request, ToDo $todo): JsonResponse
     {
-        $request->validate([
-            'title' => 'required|string|max:100',
-            'description' => 'sometimes|nullable|string',
-            'state' => ['required','string',Rule::in(ToDoStates::states())],
-            'thumbnail' => 'sometimes|nullable|url',
-            'committed_due_date' => 'sometimes|nullable|date',
-            'priority' => ['required','string',Rule::in(ToDoPriorities::priorities())],
-        ]);
-        $todo->update($request->all());
+        $this->toDoService->edit($todo, $request->validated());
         return JsonHelper::success([
             'data' => new TodoResource($todo)
         ]);
@@ -81,7 +65,7 @@ class ToDoController extends Controller
      */
     public function destroy(ToDo $todo): JsonResponse
     {
-        $todo->delete();
+        $this->toDoService->delete($todo);
         return JsonHelper::success();
     }
 }

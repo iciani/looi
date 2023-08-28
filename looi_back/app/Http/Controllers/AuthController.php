@@ -3,33 +3,27 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\JsonHelper;
-use App\Models\User;
-use Illuminate\Http\Request;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Services\AuthService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    public function __construct()
+    public function __construct(public readonly AuthService $authService)
     {
         $this->middleware('auth:api', ['except' => ['login', 'register']]);
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request): JsonResponse
     {
-        $request->validate([
-            'email' => 'required|string|email',
-            'password' => 'required|string',
-        ]);
-        $credentials = $request->only('email', 'password');
-        $token = Auth::attempt($credentials);
+        $token = $this->authService->attemp($request->only('email', 'password'));
         if (!$token) {
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
         }
-        $user = Auth::user();
         return JsonHelper::success([
-            'user' => $user,
+            'user' => $this->authService->user(),
             'authorisation' => [
                 'token' => $token,
                 'type' => 'bearer',
@@ -37,21 +31,9 @@ class AuthController extends Controller
             ]);
     }
 
-    public function register(Request $request)
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6',
-        ]);
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-        $token = Auth::login($user);
-
+        list($user, $token) = $this->authService->register($request->validated());
         return JsonHelper::success([
             'message' => 'User created successfully',
             'user' => $user,
@@ -62,18 +44,18 @@ class AuthController extends Controller
             ], Response::HTTP_OK);
     }
 
-    public function logout()
+    public function logout(): JsonResponse
     {
-        Auth::logout();
+        $this->authService->logout();
         return JsonHelper::success(['message' => 'Successfully logged out']);
     }
 
-    public function refresh()
+    public function refresh(): JsonResponse
     {
         return JsonHelper::success([
-            'user' => Auth::user(),
+            'user' => $this->authService->user(),
             'authorisation' => [
-                'token' => Auth::refresh(),
+                'token' => $this->authService->refresh(),
                 'type' => 'bearer',
             ]]);
     }
